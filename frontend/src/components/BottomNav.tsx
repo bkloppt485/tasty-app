@@ -19,7 +19,7 @@ export default function BottomNav() {
   );
 
   return (
-    <nav className="absolute bottom-0 inset-x-0 z-40 bg-bg-primary/95 backdrop-blur-md border-t border-border-subtle">
+    <nav className="absolute bottom-0 inset-x-0 z-40 bg-bg-primary/95 backdrop-blur-md border-t border-border-subtle pb-safe">
       <ul className="grid grid-cols-4 px-2 pt-2 pb-3">
         {tabs.map((tab, i) => {
           const active = i === activeIndex;
