@@ -77,8 +77,8 @@ const p = (t: string) =>
 const statusBadge = (label: string) =>
   `<div style="display:inline-block;padding:8px 16px;background:${BORDEAUX};color:${CREAM};font-size:11px;letter-spacing:0.22em;text-transform:uppercase;border-radius:2px;font-weight:600;">${label}</div>`;
 
-const fmtEUR = (cents: number) =>
-  (cents / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+const fmtEUR = (eur: number) =>
+  eur.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 
 const fmtDateTime = (d: Date | string) =>
   (typeof d === "string" ? new Date(d) : d).toLocaleString("de-DE", {
