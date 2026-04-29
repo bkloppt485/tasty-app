@@ -190,8 +190,17 @@ async function main() {
 
   // Idempotent: skip if data exists and SEED_FORCE not set
   const existing = await prisma.user.count();
-  if (existing > 0 && !process.env.SEED_FORCE) {
+  const isProduction = process.env.NODE_ENV === "production";
+  const force = process.env.SEED_FORCE === "1";
+
+  if (existing > 0 && !force) {
     console.log(`✅ DB already has ${existing} users — skipping seed (set SEED_FORCE=1 to override).`);
+    return;
+  }
+
+  // Hard refuse to (re-)seed default demo accounts in production unless explicit
+  if (isProduction && !force) {
+    console.log("✅ Production environment — skipping demo user/data seed (use SEED_FORCE=1 to override).");
     return;
   }
 

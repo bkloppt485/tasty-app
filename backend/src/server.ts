@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { config } from "@/config/env";
 import healthRoutes from "@/routes/health";
 import authRoutes from "@/routes/auth";
@@ -11,6 +12,9 @@ import reservationRoutes from "@/routes/reservations";
 
 const app = express();
 
+// Trust the first proxy (Render) so rate-limit & req.ip work correctly
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(helmet());
 
@@ -19,29 +23,61 @@ const allowedOrigins = (process.env.CORS_ORIGINS ?? config.frontendUrl)
   .map((s) => s.trim())
   .filter(Boolean);
 
+const wildcardAllowed = allowedOrigins.includes("*");
+if (wildcardAllowed && config.isProduction) {
+  console.warn(
+    "⚠️  CORS_ORIGINS=* in production: credentials will be disabled to avoid CSRF. Set explicit origins."
+  );
+}
+
+// Build per-origin host matchers from allowlist (exact host or .suffix-only match)
+const allowedHostMatchers = allowedOrigins
+  .filter((o) => o !== "*")
+  .map((o) => {
+    const stripped = o.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const wildcardSub = stripped.startsWith("*.");
+    const host = wildcardSub ? stripped.slice(2) : stripped;
+    return { host, wildcardSub };
+  });
+
+function originAllowed(origin: string): boolean {
+  if (allowedOrigins.includes(origin)) return true;
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    return false;
+  }
+  return allowedHostMatchers.some(({ host, wildcardSub }) => {
+    if (originHost === host) return true;
+    if (wildcardSub && originHost.endsWith("." + host)) return true;
+    return false;
+  });
+}
+
 app.use(
   cors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
-      if (allowedOrigins.includes("*")) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      // Allow Vercel preview deployments matching base host
-      if (
-        allowedOrigins.some(
-          (o) =>
-            o.startsWith("https://") &&
-            origin.endsWith(o.replace(/^https?:\/\//, "").replace(/^\*\./, ""))
-        )
-      ) {
-        return cb(null, true);
-      }
+      if (wildcardAllowed) return cb(null, true);
+      if (originAllowed(origin)) return cb(null, true);
       return cb(new Error(`CORS blocked: ${origin}`));
     },
-    credentials: true,
+    // Never echo credentials when wildcard is in effect (prevents CSRF/credential theft)
+    credentials: !wildcardAllowed,
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
+
+// Rate limit auth endpoints to slow down credential stuffing
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Zu viele Versuche. Bitte später erneut." },
+});
 
 // Request logging
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -51,7 +87,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 app.use("/api/health", healthRoutes);
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/orders", orderRoutes);

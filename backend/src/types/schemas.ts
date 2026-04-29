@@ -22,11 +22,14 @@ export const createProductSchema = z.object({
 export const createOrderSchema = z.object({
   orderType: z.enum(["PICKUP", "DELIVERY"]),
   tipAmount: z.number().min(0).max(1000).optional(),
-  items: z.array(
-    z.object({
-      productId: z.string(),
-      quantity: z.number().positive(),
-      notes: z.string().max(500).optional(),
-    })
-  ),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1).max(200),
+        quantity: z.number().int().min(1).max(50),
+        notes: z.string().max(500).optional(),
+      })
+    )
+    .min(1)
+    .max(50),
 });

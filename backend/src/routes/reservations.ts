@@ -55,6 +55,41 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response) => {
         .json({ error: "Reservierungen nur zwischen 11:00 und 21:30" });
     }
 
+    // Capacity: max 30 guests per 30-min slot
+    const slotStart = new Date(date);
+    slotStart.setMinutes(date.getMinutes() < 30 ? 0 : 30, 0, 0);
+    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+    const existingForSlot = await prisma.reservation.findMany({
+      where: {
+        status: { not: "CANCELLED" },
+        date: { gte: slotStart, lt: slotEnd },
+      },
+      select: { partySize: true },
+    });
+    const seatsTaken = existingForSlot.reduce((s, r) => s + r.partySize, 0);
+    if (seatsTaken + data.partySize > 30) {
+      return res.status(409).json({
+        error: "Dieser Slot ist leider voll. Bitte wähle eine andere Uhrzeit.",
+      });
+    }
+
+    // Anti-spam: limit guest reservations from same email to 5 per day
+    if (!req.userId && data.guestEmail) {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      const recent = await prisma.reservation.count({
+        where: {
+          guestEmail: data.guestEmail,
+          createdAt: { gte: dayStart },
+        },
+      });
+      if (recent >= 5) {
+        return res
+          .status(429)
+          .json({ error: "Tageslimit für Reservierungen erreicht" });
+      }
+    }
+
     let guestName = data.guestName;
     let guestEmail = data.guestEmail;
     let guestPhone = data.guestPhone;

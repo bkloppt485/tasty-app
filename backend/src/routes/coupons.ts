@@ -47,13 +47,15 @@ router.get("/", optionalAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Activate a coupon for current user (one-time per user)
+// Activate a coupon for current user (one-time per user, respects usageLimit)
 router.post(
   "/:id/redeem",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
     try {
       const couponId = req.params.id;
+      const userId = req.userId!;
+
       const coupon = await prisma.coupon.findUnique({ where: { id: couponId } });
       if (!coupon) {
         return res.status(404).json({ error: "Angebot nicht gefunden" });
@@ -61,16 +63,45 @@ router.post(
       if (coupon.validUntil <= new Date()) {
         return res.status(400).json({ error: "Angebot abgelaufen" });
       }
-      const existing = await prisma.couponRedemption.findUnique({
-        where: { userId_couponId: { userId: req.userId!, couponId } },
-      });
-      if (existing) {
-        return res.status(409).json({ error: "Bereits aktiviert" });
+
+      // Atomic: enforce per-user uniqueness + global usageLimit in one transaction
+      try {
+        const updated = await prisma.$transaction(async (tx) => {
+          if (coupon.usageLimit !== null && coupon.usageLimit !== undefined) {
+            const incremented = await tx.coupon.updateMany({
+              where: {
+                id: couponId,
+                usedCount: { lt: coupon.usageLimit },
+              },
+              data: { usedCount: { increment: 1 } },
+            });
+            if (incremented.count === 0) {
+              throw new Error("USAGE_LIMIT_REACHED");
+            }
+          } else {
+            await tx.coupon.update({
+              where: { id: couponId },
+              data: { usedCount: { increment: 1 } },
+            });
+          }
+          await tx.couponRedemption.create({
+            data: { userId, couponId },
+          });
+          return tx.coupon.findUnique({ where: { id: couponId } });
+        });
+        return res.json({ ...updated, redeemedByMe: true });
+      } catch (err: any) {
+        if (err?.message === "USAGE_LIMIT_REACHED") {
+          return res
+            .status(409)
+            .json({ error: "Angebot ist nicht mehr verfügbar" });
+        }
+        // Prisma unique-constraint = already redeemed
+        if (err?.code === "P2002") {
+          return res.status(409).json({ error: "Bereits aktiviert" });
+        }
+        throw err;
       }
-      await prisma.couponRedemption.create({
-        data: { userId: req.userId!, couponId },
-      });
-      res.json({ ...coupon, redeemedByMe: true });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Failed to redeem coupon" });

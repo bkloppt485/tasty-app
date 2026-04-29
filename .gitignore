@@ -51,3 +51,7 @@ backend/prisma/migrations/
 .coverage
 .nyc_output
 coverage/
+
+.admin-password.txt
+.jwt-secret.txt
+*.secret
