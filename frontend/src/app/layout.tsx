@@ -3,6 +3,7 @@ import { Inter, Cormorant_Garamond, Pacifico } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import InstallPrompt from "@/components/InstallPrompt";
+import WelcomeToast from "@/components/WelcomeToast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,6 +31,20 @@ export const metadata: Metadata = {
     "Tasty Kassel — eine ruhige, italienische Hommage an guten Geschmack.",
   manifest: "/manifest.webmanifest",
   applicationName: "Tasty",
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    siteName: "Tasty",
+    title: "Tasty — Ristorante & Döner · Kassel",
+    description:
+      "Eine ruhige italienische Hommage an guten Geschmack — bestellen, reservieren, genießen.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tasty — Ristorante & Döner · Kassel",
+    description:
+      "Eine ruhige italienische Hommage an guten Geschmack.",
+  },
   appleWebApp: {
     capable: true,
     title: "Tasty",
@@ -88,6 +103,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-bg-primary text-text-cream">
         <Providers>{children}</Providers>
         <InstallPrompt />
+        <WelcomeToast />
       </body>
     </html>
   );

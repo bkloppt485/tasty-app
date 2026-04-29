@@ -210,4 +210,39 @@ router.get("/stats", async (_req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/admin/demo-reset — wipe orders, reservations, push subs, redemptions
+// to put the demo back into a pristine state for live customer pitches.
+// Does NOT touch users, products, coupons.
+router.post("/demo-reset", async (_req: AuthRequest, res: Response) => {
+  try {
+    const [orderItems, addresses, orders, reservations, redemptions, pushSubs] =
+      await prisma.$transaction([
+        prisma.orderItem.deleteMany(),
+        prisma.address.deleteMany({ where: { orderId: { not: null } } }),
+        prisma.order.deleteMany(),
+        prisma.reservation.deleteMany(),
+        prisma.couponRedemption.deleteMany(),
+        prisma.pushSubscription.deleteMany(),
+      ]);
+
+    // Reset coupon usage counters
+    await prisma.coupon.updateMany({ data: { usedCount: 0 } });
+
+    res.json({
+      ok: true,
+      deleted: {
+        orderItems: orderItems.count,
+        addresses: addresses.count,
+        orders: orders.count,
+        reservations: reservations.count,
+        redemptions: redemptions.count,
+        pushSubscriptions: pushSubs.count,
+      },
+    });
+  } catch (e) {
+    console.error("Demo reset failed", e);
+    res.status(500).json({ error: "Demo reset failed" });
+  }
+});
+
 export default router;

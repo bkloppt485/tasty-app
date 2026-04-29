@@ -9,6 +9,7 @@ import {
   useAdminStats,
   useUpdateOrderStatus,
   useUpdateReservationStatus,
+  useDemoReset,
   type AdminOrder,
 } from "@/hooks/admin";
 import {
@@ -27,6 +28,7 @@ import {
   XCircle,
   ArrowRight,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 
 type Tab = "orders" | "reservations" | "stats";
@@ -132,22 +134,109 @@ function StatsPanel() {
     return <div className="text-center text-text-muted py-12">Lade…</div>;
   }
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <StatCard label="Bestellungen heute" value={data.todayOrders} />
-      <StatCard
-        label="Umsatz heute"
-        value={`€ ${data.todayRevenue.toFixed(2)}`}
-      />
-      <StatCard label="Aktiv (Küche)" value={data.activeOrders} accent />
-      <StatCard
-        label="Reservierungen heute"
-        value={data.todayReservations}
-      />
-      <StatCard
-        label="Reservierungen offen"
-        value={data.pendingReservations}
-        accent
-      />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="Bestellungen heute" value={data.todayOrders} />
+        <StatCard
+          label="Umsatz heute"
+          value={`€ ${data.todayRevenue.toFixed(2)}`}
+        />
+        <StatCard label="Aktiv (Küche)" value={data.activeOrders} accent />
+        <StatCard
+          label="Reservierungen heute"
+          value={data.todayReservations}
+        />
+        <StatCard
+          label="Reservierungen offen"
+          value={data.pendingReservations}
+          accent
+        />
+      </div>
+      <DemoResetCard />
+    </div>
+  );
+}
+
+function DemoResetCard() {
+  const reset = useDemoReset();
+  const [confirm, setConfirm] = useState(false);
+  const [done, setDone] = useState<null | { count: number }>(null);
+
+  async function doReset() {
+    try {
+      const r = await reset.mutateAsync();
+      const total = Object.values(r.deleted).reduce((s, n) => s + n, 0);
+      setDone({ count: total });
+      setConfirm(false);
+      setTimeout(() => setDone(null), 4000);
+    } catch {
+      /* error swallowed; mutation has its own error state */
+    }
+  }
+
+  return (
+    <div
+      className="rounded-2xl p-4 border mt-4"
+      style={{
+        background: "rgba(45,10,15,0.04)",
+        borderColor: "rgba(122,30,42,0.18)",
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className="flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center"
+          style={{
+            background: "rgba(122,30,42,0.08)",
+            border: "1px solid rgba(122,30,42,0.25)",
+            color: "#7A1E2A",
+          }}
+        >
+          <RotateCcw className="h-4 w-4" strokeWidth={1.6} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="font-serif text-base text-bordeaux leading-tight">
+            Demo zurücksetzen
+          </p>
+          <p className="text-[12px] text-text-muted leading-snug mt-1">
+            Löscht alle Test-Bestellungen, Reservierungen, Coupon-Einlösungen
+            und Push-Subscriptions. Nutzer, Produkte und Coupons bleiben
+            erhalten.
+          </p>
+
+          {done && (
+            <p className="text-[12px] mt-3 text-green-700">
+              ✓ {done.count} Demo-Einträge gelöscht.
+            </p>
+          )}
+
+          {!confirm ? (
+            <button
+              onClick={() => setConfirm(true)}
+              disabled={reset.isPending}
+              className="mt-3 text-[11px] uppercase tracking-[0.18em] px-3 py-1.5 rounded-full border border-bordeaux/40 text-bordeaux hover:bg-bordeaux/[0.05] transition-colors"
+            >
+              Zurücksetzen
+            </button>
+          ) : (
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={doReset}
+                disabled={reset.isPending}
+                className="text-[11px] uppercase tracking-[0.18em] px-3 py-1.5 rounded-full bg-bordeaux text-bg-primary disabled:opacity-50"
+              >
+                {reset.isPending ? "Lösche…" : "Ja, löschen"}
+              </button>
+              <button
+                onClick={() => setConfirm(false)}
+                disabled={reset.isPending}
+                className="text-[11px] uppercase tracking-[0.18em] px-3 py-1.5 rounded-full border border-border-subtle text-text-muted"
+              >
+                Abbrechen
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

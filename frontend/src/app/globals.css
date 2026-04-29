@@ -281,6 +281,68 @@ select {
   }
 }
 
+/* ===== Install prompt animations ===== */
+.install-prompt-enter {
+  animation: installPromptIn 540ms cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+.install-prompt-leave {
+  animation: installPromptOut 320ms cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+@keyframes installPromptIn {
+  0% {
+    opacity: 0;
+    transform: translateY(140%) scale(0.94);
+    filter: blur(6px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+@keyframes installPromptOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(140%) scale(0.96);
+  }
+}
+@keyframes installIconShimmer {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(201, 164, 92, 0.55),
+      inset 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(201, 164, 92, 0),
+      inset 0 0 16px 0 rgba(255, 220, 160, 0.18);
+  }
+}
+.install-icon-glow {
+  animation: installIconShimmer 2.4s ease-in-out infinite;
+}
+@keyframes installArrow {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+}
+.install-arrow {
+  animation: installArrow 1.8s ease-in-out infinite;
+}
+
 /* ===== Page transition ===== */
 .page-enter {
   animation: pageIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);

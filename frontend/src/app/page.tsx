@@ -8,6 +8,7 @@ import { useProducts, useCoupons } from "@/hooks/queries";
 import { useAuthStore } from "@/store/auth";
 import { CouponSkeleton, Skeleton } from "@/components/Skeleton";
 import CouponCard from "@/components/CouponCard";
+import Reveal from "@/components/Reveal";
 import { formatPrice } from "@/lib/utils";
 
 const PIZZA_VERINIO = {
@@ -81,7 +82,8 @@ export default function HomePage() {
       </section>
 
       {/* CTA — Bestellen + Reservieren (Cream-elegant, two columns) */}
-      <section className="px-5 mt-8">
+      <Reveal y={20} delay={120}>
+        <section className="px-5 mt-8">
         <div className="bg-bg-elevated border border-border-subtle shadow-soft rounded-sm">
           <div className="flex flex-col sm:flex-row">
             <Link
@@ -136,6 +138,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Greeting */}
       <section className="px-7 pt-10 pb-4 animate-fade-up">
@@ -150,6 +153,7 @@ export default function HomePage() {
       <div className="hairline-gold mx-7 my-2" />
 
       {/* Unsere Karte */}
+      <Reveal y={18}>
       <section className="pt-10 pb-6">
         <div className="px-7">
           <p className="text-[10px] uppercase tracking-[0.3em] text-accent-gold-soft">
@@ -204,10 +208,12 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+      </Reveal>
 
       <div className="hairline-gold mx-7 my-12" />
 
       {/* Story / Editorial */}
+      <Reveal y={20}>
       <section className="px-7 pb-4 animate-fade-up">
         <p className="text-[10px] uppercase tracking-[0.3em] text-accent-gold-soft">
           La Nostra Storia
@@ -236,10 +242,12 @@ export default function HomePage() {
           Mehr über uns
         </Link>
       </section>
+      </Reveal>
 
       <div className="hairline-gold mx-7 my-12" />
 
       {/* Aufmerksamkeiten */}
+      <Reveal y={18}>
       <section className="px-7 pb-4">
         <p className="text-[10px] uppercase tracking-[0.3em] text-accent-gold-soft">
           Per Lei
@@ -293,6 +301,7 @@ export default function HomePage() {
           )}
         </div>
       </section>
+      </Reveal>
 
       {/* Footer */}
       <footer className="mt-16 px-7 pb-10">

@@ -86,3 +86,21 @@ export function useUpdateReservationStatus() {
     },
   });
 }
+
+export function useDemoReset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.post<{ ok: boolean; deleted: Record<string, number> }>(
+        "/admin/demo-reset",
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["reservations"] });
+      qc.invalidateQueries({ queryKey: ["coupons"] });
+    },
+  });
+}
