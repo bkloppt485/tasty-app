@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/database/prisma";
 import { authMiddleware, AuthRequest } from "@/middleware/auth";
 import { verifyToken } from "@/utils/jwt";
+import { sendReservationConfirmation } from "@/lib/mailer";
 
 const router = Router();
 
@@ -121,6 +122,18 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response) => {
       },
     });
     res.status(201).json(reservation);
+
+    // Fire-and-forget: send confirmation email
+    sendReservationConfirmation({
+      to: guestEmail,
+      name: guestName,
+      reservationId: reservation.id,
+      date: reservation.date,
+      partySize: reservation.partySize,
+      notes: reservation.notes,
+    }).catch((e) =>
+      console.error("[reservations] confirmation mail failed:", e),
+    );
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create reservation" });

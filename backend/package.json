@@ -27,6 +27,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "prisma": "^5.8.0",
+    "resend": "^6.12.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "zod": "^3.22.4"

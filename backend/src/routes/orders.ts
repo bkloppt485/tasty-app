@@ -3,6 +3,7 @@ import { prisma } from "@/database/prisma";
 import { authMiddleware, AuthRequest } from "@/middleware/auth";
 import { validateRequest } from "@/middleware/validation";
 import { createOrderSchema } from "@/types/schemas";
+import { sendOrderConfirmation } from "@/lib/mailer";
 
 const router = Router();
 
@@ -72,6 +73,24 @@ router.post(
       });
 
       res.status(201).json(order);
+
+      // Fire-and-forget: send confirmation email to user
+      const user = await prisma.user.findUnique({ where: { id: req.userId! } });
+      if (user?.email) {
+        sendOrderConfirmation({
+          to: user.email,
+          name: user.name,
+          orderId: order.id,
+          orderType: order.orderType as "PICKUP" | "DELIVERY",
+          totalAmount: order.totalAmount,
+          tipAmount: order.tipAmount,
+          items: order.items.map((it) => ({
+            quantity: it.quantity,
+            price: it.price,
+            product: { name: it.product.name },
+          })),
+        }).catch((e) => console.error("[orders] confirmation mail failed:", e));
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to create order" });
     }

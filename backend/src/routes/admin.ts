@@ -3,6 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/database/prisma";
 import { authMiddleware, adminMiddleware, AuthRequest } from "@/middleware/auth";
 import { validateRequest } from "@/middleware/validation";
+import {
+  sendOrderStatusUpdate,
+  sendReservationStatusUpdate,
+} from "@/lib/mailer";
 
 const router = Router();
 
@@ -72,6 +76,17 @@ router.patch(
         },
       });
       res.json(order);
+
+      if (order.user?.email) {
+        sendOrderStatusUpdate({
+          to: order.user.email,
+          name: order.user.name,
+          orderId: order.id,
+          status,
+        }).catch((e) =>
+          console.error("[admin] order status mail failed:", e),
+        );
+      }
     } catch (e: any) {
       if (e?.code === "P2025") {
         return res.status(404).json({ error: "Order not found" });
@@ -127,6 +142,19 @@ router.patch(
         data: { status },
       });
       res.json(reservation);
+
+      if (reservation.guestEmail) {
+        sendReservationStatusUpdate({
+          to: reservation.guestEmail,
+          name: reservation.guestName,
+          reservationId: reservation.id,
+          status,
+          date: reservation.date,
+          partySize: reservation.partySize,
+        }).catch((e) =>
+          console.error("[admin] reservation status mail failed:", e),
+        );
+      }
     } catch (e: any) {
       if (e?.code === "P2025") {
         return res.status(404).json({ error: "Reservation not found" });
