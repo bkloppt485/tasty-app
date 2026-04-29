@@ -1,0 +1,124 @@
+name: "Copilot Setup Steps"
+
+on:
+    workflow_dispatch:
+    push:
+        paths:
+            - .github/workflows/copilot-setup-steps.yml
+    pull_request:
+        paths:
+            - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+    copilot-setup-steps:
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+
+        steps:
+            # === Checkout Code ===
+            - name: Checkout code
+              uses: actions/checkout@v5
+
+            # === Node.js Setup (for gastro-webapp, ince-b83-restaurant, pharaohs-fortune) ===
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+
+            # === Install Root Dependencies ===
+            - name: Install root dependencies
+              run: npm ci
+
+            # === Install Backend Dependencies ===
+            - name: Install backend dependencies
+              run: cd backend && npm ci
+              if: hashFiles('backend/package.json') != ''
+
+            # === Install Frontend Dependencies ===
+            - name: Install frontend dependencies
+              run: cd frontend && npm ci
+              if: hashFiles('frontend/package.json') != ''
+
+            # === Setup Prisma (Database ORM) ===
+            - name: Generate Prisma Client
+              run: cd backend && npx prisma generate
+              if: hashFiles('backend/prisma/schema.prisma') != ''
+              continue-on-error: true
+
+            # === Docker Setup ===
+            - name: Set up Docker
+              uses: docker/setup-buildx-action@v3
+
+            # === Flutter Setup (for meine_app) ===
+            - name: Set up Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  flutter-version: "3.22.0"
+                  channel: "stable"
+              if: hashFiles('meine_app/pubspec.yaml') != ''
+
+            - name: Install Flutter dependencies
+              run: cd ../meine_app && flutter pub get
+              if: hashFiles('../meine_app/pubspec.yaml') != ''
+              continue-on-error: true
+
+            # === .NET Setup (for .NET projects) ===
+            - name: Set up .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: "8.0.x"
+              continue-on-error: true
+
+            # === Build Backend ===
+            - name: Build backend
+              run: cd backend && npm run build
+              if: hashFiles('backend/package.json') != ''
+              continue-on-error: true
+
+            # === Build Frontend ===
+            - name: Build frontend
+              run: cd frontend && npm run build
+              if: hashFiles('frontend/package.json') != ''
+              continue-on-error: true
+
+            # === Cache Tools & Dependencies ===
+            - name: Cache npm modules
+              uses: actions/cache@v4
+              with:
+                  path: ~/.npm
+                  key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-npm-
+
+            - name: Cache Flutter
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.cache/pub-cache
+                      **/.dart_tool
+                  key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-flutter-
+              if: hashFiles('meine_app/pubspec.yaml') != ''
+              continue-on-error: true
+
+            # === Verify Setup ===
+            - name: Verify Node.js
+              run: node --version && npm --version
+
+            - name: Verify Docker
+              run: docker --version
+
+            - name: Verify Flutter (if present)
+              run: flutter --version
+              continue-on-error: true
+
+            - name: Verify .NET (if present)
+              run: dotnet --version
+              continue-on-error: true
+
+            - name: Setup complete
+              run: echo "✅ Copilot environment fully configured and ready!"

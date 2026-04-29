@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg-primary: #FAF6EE;
+  --bg-deep: #F1E9DA;
+  --bg-elevated: #FFFFFF;
+  --accent-gold: #C9A45C;
+  --accent-gold-soft: #A8843E;
+  --bordeaux: #7A1E2A;
+  --bordeaux-deep: #5C141F;
+  --text-cream: #2A1A1C;
+  --text-muted: #7A6A6C;
+  --text-faint: #A89A9C;
+  --border-subtle: #E5DBC8;
+  --border-gold: #C9A45C;
+}
+
+html,
+body {
+  color: var(--text-cream);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  background: #1a0a0c;
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@media (max-width: 640px) {
+  html,
+  body {
+    background: var(--bg-primary);
+  }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(201, 164, 92, 0.35);
+  color: var(--text-cream);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ===== Phone-Frame (Desktop preview) ===== */
+.phone-frame {
+  position: relative;
+  border-radius: 3rem;
+  background: #161013;
+  padding: 14px;
+  box-shadow:
+    0 60px 120px -20px rgba(0, 0, 0, 0.5),
+    0 30px 60px -30px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(201, 164, 92, 0.08) inset;
+}
+.phone-screen {
+  position: relative;
+  border-radius: 2.4rem;
+  overflow: hidden;
+  background: var(--bg-primary);
+  box-shadow: inset 0 0 0 1px rgba(42, 26, 28, 0.06);
+}
+.phone-notch {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 28px;
+  background: #161013;
+  border-radius: 999px;
+  z-index: 50;
+  pointer-events: none;
+}
+.phone-statusbar {
+  height: 44px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg-primary);
+}
+
+/* ===== Gold-Underline-Button (CTA) ===== */
+.gold-underline-btn {
+  display: inline-block;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent-gold-soft);
+  padding-bottom: 6px;
+  position: relative;
+  transition: color 250ms ease;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.gold-underline-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 100%;
+  background: var(--accent-gold);
+  opacity: 0.7;
+  transform-origin: left center;
+  transition:
+    opacity 300ms ease,
+    transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gold-underline-btn:hover::after {
+  opacity: 1;
+  transform: scaleX(1.04);
+}
+.gold-underline-btn:hover {
+  color: var(--bordeaux);
+}
+.gold-underline-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== Bordeaux solid CTA ===== */
+.bordeaux-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--bg-primary);
+  background: var(--bordeaux);
+  padding: 12px 22px;
+  border-radius: 2px;
+  border: 0;
+  cursor: pointer;
+  transition: background 250ms ease, transform 200ms ease;
+}
+.bordeaux-btn:hover {
+  background: var(--bordeaux-deep);
+}
+.bordeaux-btn:active {
+  transform: scale(0.98);
+}
+.bordeaux-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Cream outline pill ===== */
+.cream-pill-btn {
+  display: inline-block;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-cream);
+  padding: 10px 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  transition:
+    background 250ms ease,
+    border-color 250ms ease;
+  cursor: pointer;
+}
+.cream-pill-btn:hover {
+  border-color: var(--accent-gold);
+  background: var(--bg-deep);
+}
+
+/* ===== Menu dotted divider ===== */
+.menu-divider {
+  flex: 1;
+  height: 1px;
+  margin: 0 12px 6px 12px;
+  background-image: radial-gradient(
+    circle,
+    rgba(201, 164, 92, 0.55) 1px,
+    transparent 1.2px
+  );
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+  background-position: bottom;
+}
+
+/* ===== Hairlines ===== */
+.hairline {
+  height: 1px;
+  background: var(--border-subtle);
+  width: 100%;
+}
+.hairline-gold {
+  height: 1px;
+  background: rgba(201, 164, 92, 0.4);
+  width: 100%;
+}
+
+/* ===== Skeleton (light) ===== */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(42, 26, 28, 0.06);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 164, 92, 0.15) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 1.8s linear infinite;
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ===== Page transition ===== */
+.page-enter {
+  animation: pageIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pageIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Inputs (luxury underline style on cream) ===== */
+.luxe-input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(201, 164, 92, 0.5);
+  padding: 12px 0 10px 0;
+  font-family: var(--font-inter), sans-serif;
+  color: var(--text-cream);
+  font-size: 0.95rem;
+  transition: border-color 250ms ease;
+  outline: none;
+  border-radius: 0;
+}
+.luxe-input::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.luxe-input:focus {
+  border-color: var(--bordeaux);
+}
+.luxe-label {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-faint);
+}
+
+/* ===== Press helper ===== */
+.press {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.press:active {
+  opacity: 0.7;
+  transform: scale(0.985);
+}
+
+/* ===== Card surface ===== */
+.surface {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(42, 26, 28, 0.04), 0 4px 12px rgba(42, 26, 28, 0.04);
+}
