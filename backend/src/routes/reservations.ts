@@ -4,6 +4,7 @@ import { prisma } from "@/database/prisma";
 import { authMiddleware, AuthRequest } from "@/middleware/auth";
 import { verifyToken } from "@/utils/jwt";
 import { sendReservationConfirmation } from "@/lib/mailer";
+import { sendNewReservationToAdmins } from "@/lib/push";
 
 const router = Router();
 
@@ -133,6 +134,15 @@ router.post("/", optionalAuth, async (req: AuthRequest, res: Response) => {
       notes: reservation.notes,
     }).catch((e) =>
       console.error("[reservations] confirmation mail failed:", e),
+    );
+
+    sendNewReservationToAdmins({
+      reservationId: reservation.id,
+      guestName: reservation.guestName,
+      date: reservation.date,
+      partySize: reservation.partySize,
+    }).catch((e) =>
+      console.error("[reservations] admin push failed:", e),
     );
   } catch (error) {
     console.error(error);

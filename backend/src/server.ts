@@ -10,6 +10,7 @@ import couponRoutes from "@/routes/coupons";
 import orderRoutes from "@/routes/orders";
 import reservationRoutes from "@/routes/reservations";
 import adminRoutes from "@/routes/admin";
+import pushRoutes from "@/routes/push";
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/push", pushRoutes);
 
 // Error handling
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

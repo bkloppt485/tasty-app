@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from "@/middleware/auth";
 import { validateRequest } from "@/middleware/validation";
 import { createOrderSchema } from "@/types/schemas";
 import { sendOrderConfirmation } from "@/lib/mailer";
+import { sendNewOrderToAdmins } from "@/lib/push";
 
 const router = Router();
 
@@ -91,6 +92,14 @@ router.post(
           })),
         }).catch((e) => console.error("[orders] confirmation mail failed:", e));
       }
+
+      // Fire-and-forget: notify admins via push
+      sendNewOrderToAdmins({
+        orderId: order.id,
+        totalAmount: order.totalAmount,
+        customerName: user?.name ?? "Gast",
+        orderType: order.orderType,
+      }).catch((e) => console.error("[orders] admin push failed:", e));
     } catch (error) {
       res.status(500).json({ error: "Failed to create order" });
     }

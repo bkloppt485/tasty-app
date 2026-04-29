@@ -7,6 +7,7 @@ import {
   sendOrderStatusUpdate,
   sendReservationStatusUpdate,
 } from "@/lib/mailer";
+import { sendOrderStatusPush } from "@/lib/push";
 
 const router = Router();
 
@@ -87,6 +88,12 @@ router.patch(
           console.error("[admin] order status mail failed:", e),
         );
       }
+
+      sendOrderStatusPush({
+        userId: order.userId,
+        orderId: order.id,
+        status,
+      }).catch((e) => console.error("[admin] order status push failed:", e));
     } catch (e: any) {
       if (e?.code === "P2025") {
         return res.status(404).json({ error: "Order not found" });

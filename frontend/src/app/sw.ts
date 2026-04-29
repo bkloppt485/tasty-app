@@ -64,3 +64,50 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// ── Web Push Handlers ───────────────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data: { title?: string; body?: string; url?: string; tag?: string; icon?: string; badge?: string } = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { title: "Tasty", body: event.data.text() };
+    }
+  }
+  const title = data.title || "Tasty";
+  const options: NotificationOptions = {
+    body: data.body || "",
+    icon: data.icon || "/icons/icon-192.png",
+    badge: data.badge || "/icons/icon-192.png",
+    tag: data.tag,
+    data: { url: data.url || "/" },
+    requireInteraction: false,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && (event.notification.data as { url?: string }).url) || "/";
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // Focus an existing tab if any
+      for (const client of allClients) {
+        if ("focus" in client) {
+          await (client as WindowClient).focus();
+          if ("navigate" in client) {
+            try {
+              await (client as WindowClient).navigate(targetUrl);
+            } catch {
+              /* cross-origin navigate may be blocked */
+            }
+          }
+          return;
+        }
+      }
+      await self.clients.openWindow(targetUrl);
+    })(),
+  );
+});
