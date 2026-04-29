@@ -3,12 +3,23 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Minus, Plus, X, MessageSquare } from "lucide-react";
+import { ArrowLeft, Minus, Plus, X, MessageSquare, Tag, Check } from "lucide-react";
 import { useState } from "react";
 import { useCartStore } from "@/store/cart";
 import { useUIStore } from "@/store/ui";
+import { useCoupons } from "@/hooks/queries";
+import { useAuthStore } from "@/store/auth";
 import { formatPrice } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
+import type { Coupon } from "@/types";
+
+function computeDiscount(c: Coupon, subtotal: number): number {
+  if (c.minOrderValue && subtotal < c.minOrderValue) return 0;
+  if (c.discountType === "PERCENT") {
+    return +(subtotal * (c.discountValue / 100)).toFixed(2);
+  }
+  return Math.min(c.discountValue, subtotal);
+}
 
 export default function CartPage() {
   const router = useRouter();
@@ -18,11 +29,43 @@ export default function CartPage() {
   const setNotes = useCartStore((s) => s.setNotes);
   const totalPrice = useCartStore((s) => s.totalPrice());
   const totalCount = useCartStore((s) => s.totalCount());
+  const appliedCouponCode = useCartStore((s) => s.appliedCouponCode);
+  const setCoupon = useCartStore((s) => s.setCoupon);
   const showToast = useUIStore((s) => s.showToast);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: coupons } = useCoupons();
   const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
 
   const toggleNotes = (id: string) =>
     setOpenNotes((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const myCoupons =
+    coupons?.filter(
+      (c) => c.redeemedByMe && new Date(c.validUntil) > new Date()
+    ) ?? [];
+
+  const appliedCoupon = appliedCouponCode
+    ? myCoupons.find((c) => c.code === appliedCouponCode) ?? null
+    : null;
+  const discount = appliedCoupon ? computeDiscount(appliedCoupon, totalPrice) : 0;
+  const previewTotal = Math.max(0, totalPrice - discount);
+
+  const toggleCoupon = (c: Coupon) => {
+    if (appliedCouponCode === c.code) {
+      setCoupon(null);
+      showToast("Gutschein entfernt", "info");
+      return;
+    }
+    if (c.minOrderValue && totalPrice < c.minOrderValue) {
+      showToast(
+        `Mindestbestellwert ${c.minOrderValue.toFixed(2)} € nicht erreicht`,
+        "info"
+      );
+      return;
+    }
+    setCoupon(c.code);
+    showToast(`Gutschein „${c.title}“ angewendet`, "success");
+  };
 
   return (
     <div className="min-h-screen bg-bg-primary">
@@ -141,16 +184,103 @@ export default function CartPage() {
             ))}
           </div>
 
+          {/* Gutscheine */}
+          <div className="px-7 mt-8">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-gold" strokeWidth={1.6} />
+              <p className="luxe-label">Meine Gutscheine</p>
+            </div>
+            {!isAuthenticated ? (
+              <p className="mt-3 text-sm text-text-muted">
+                <Link href="/login" className="text-bordeaux underline">
+                  Anmelden
+                </Link>
+                , um Gutscheine zu nutzen.
+              </p>
+            ) : myCoupons.length === 0 ? (
+              <p className="mt-3 text-sm text-text-muted">
+                Keine aktiven Gutscheine.{" "}
+                <Link href="/coupons" className="text-bordeaux underline">
+                  Angebote ansehen
+                </Link>
+              </p>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {myCoupons.map((c) => {
+                  const isApplied = appliedCouponCode === c.code;
+                  const meetsMin =
+                    !c.minOrderValue || totalPrice >= c.minOrderValue;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => toggleCoupon(c)}
+                      disabled={!meetsMin && !isApplied}
+                      className={`w-full text-left px-4 py-3 rounded-md border transition-all press ${
+                        isApplied
+                          ? "border-gold bg-gold/10"
+                          : meetsMin
+                            ? "border-border-subtle bg-bg-elevated hover:border-bordeaux/50"
+                            : "border-border-subtle bg-bg-elevated/40 opacity-60 cursor-not-allowed"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-serif text-base text-text-cream leading-tight">
+                            {c.title}
+                          </p>
+                          <p className="text-xs text-text-muted mt-0.5">
+                            {c.subtitle}
+                          </p>
+                          {c.minOrderValue && !meetsMin && (
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-text-faint mt-1">
+                              ab {c.minOrderValue.toFixed(2)} €
+                            </p>
+                          )}
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          <span className="text-sm font-semibold text-bordeaux tabular-nums">
+                            {c.discountText}
+                          </span>
+                          {isApplied && (
+                            <span className="h-5 w-5 rounded-full bg-gold flex items-center justify-center">
+                              <Check className="h-3 w-3 text-bg-primary" strokeWidth={2.5} />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="px-7 mt-8 mb-32">
             <div className="hairline-gold mb-5" />
-            <div className="flex items-baseline justify-between">
-              <span className="luxe-label">Zwischensumme</span>
-              <span className="font-serif text-2xl text-bordeaux tabular-nums font-semibold">
-                {formatPrice(totalPrice)}
-              </span>
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-text-muted">Zwischensumme</span>
+                <span className="font-sans text-text-cream tabular-nums">
+                  {formatPrice(totalPrice)}
+                </span>
+              </div>
+              {discount > 0 && (
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-gold">Rabatt</span>
+                  <span className="font-sans text-gold tabular-nums">
+                    −{formatPrice(discount)}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between pt-3 border-t border-border-subtle">
+                <span className="luxe-label">Vorl. Summe</span>
+                <span className="font-serif text-2xl text-bordeaux tabular-nums font-semibold">
+                  {formatPrice(previewTotal)}
+                </span>
+              </div>
             </div>
             <p className="mt-2 text-[10px] uppercase tracking-[0.22em] text-text-faint">
-              Trinkgeld &amp; Gesamt im nächsten Schritt
+              Trinkgeld &amp; ggf. Liefergebühr im nächsten Schritt
             </p>
 
             <Link

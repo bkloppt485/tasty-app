@@ -100,7 +100,7 @@ export default function WelcomeToast() {
           >
             Benvenuti — willkommen bei Tasty.
           </p>
-          <p className="text-[12px] leading-snug text-text-cream/70 mt-0.5">
+            <p className="text-[12px] leading-snug text-text-cream/85 mt-1" style={{ color: "rgba(245,237,224,0.82)" }}>
             Entdecken Sie unsere Karte und persönliche Aufmerksamkeiten.
           </p>
         </div>

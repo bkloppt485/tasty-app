@@ -8,13 +8,24 @@ export interface CartItem {
   notes?: string;
 }
 
+export interface DeliveryAddress {
+  street: string;
+  postalCode: string;
+  city: string;
+  country?: string;
+}
+
 interface CartStore {
   items: CartItem[];
+  appliedCouponCode: string | null;
+  deliveryAddress: DeliveryAddress | null;
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   setNotes: (productId: string, notes: string) => void;
   getQuantity: (productId: string) => number;
+  setCoupon: (code: string | null) => void;
+  setDeliveryAddress: (addr: DeliveryAddress | null) => void;
   clear: () => void;
   totalCount: () => number;
   totalPrice: () => number;
@@ -24,6 +35,10 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      appliedCouponCode: null,
+      deliveryAddress: null,
+      setCoupon: (code) => set({ appliedCouponCode: code }),
+      setDeliveryAddress: (addr) => set({ deliveryAddress: addr }),
       addItem: (product, quantity = 1) => {
         set((state) => {
           const existing = state.items.find(
@@ -62,7 +77,7 @@ export const useCartStore = create<CartStore>()(
         })),
       getQuantity: (productId) =>
         get().items.find((i) => i.product.id === productId)?.quantity ?? 0,
-      clear: () => set({ items: [] }),
+      clear: () => set({ items: [], appliedCouponCode: null }),
       totalCount: () =>
         get().items.reduce((sum, i) => sum + i.quantity, 0),
       totalPrice: () =>
@@ -71,7 +86,7 @@ export const useCartStore = create<CartStore>()(
     {
       name: "tasty_cart",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
     }
   )
 );

@@ -151,9 +151,9 @@ export default function InstallPrompt() {
           <X className="h-3.5 w-3.5" strokeWidth={1.8} />
         </button>
 
-        <div className="flex items-start gap-3.5 p-4 pr-10">
+        <div className="flex items-start gap-3.5 p-4 pr-9">
           <div
-            className="install-icon-glow w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 relative"
+            className="install-icon-glow w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 relative"
             style={{
               background:
                 "linear-gradient(145deg, #8A2230 0%, #5C1620 100%)",
@@ -161,7 +161,7 @@ export default function InstallPrompt() {
             }}
           >
             <span
-              className="font-serif text-xl"
+              className="font-serif text-lg"
               style={{ color: "#F5EDE0", letterSpacing: "0.04em" }}
             >
               T
@@ -169,13 +169,16 @@ export default function InstallPrompt() {
           </div>
           <div className="flex-1 min-w-0">
             <p
-              className="font-serif text-[15px] leading-tight mb-1"
+              className="font-serif text-[14px] leading-tight mb-1"
               style={{ color: "#F5EDE0" }}
             >
               Tasty als App installieren
             </p>
             {iosHint ? (
-              <p className="text-[12px] leading-relaxed text-text-cream/75">
+              <p
+                className="text-[12px] leading-relaxed"
+                style={{ color: "rgba(245,237,224,0.82)" }}
+              >
                 Tippe auf{" "}
                 <Share
                   className="install-arrow inline-block align-text-bottom mx-0.5"
@@ -189,7 +192,10 @@ export default function InstallPrompt() {
                 .
               </p>
             ) : (
-              <p className="text-[12px] leading-relaxed text-text-cream/75">
+              <p
+                className="text-[12px] leading-relaxed"
+                style={{ color: "rgba(245,237,224,0.82)" }}
+              >
                 Vom Home-Bildschirm starten — ohne Browser, mit Push-Benachrichtigungen.
               </p>
             )}
@@ -197,7 +203,7 @@ export default function InstallPrompt() {
             {!iosHint && (
               <button
                 onClick={install}
-                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-[12px] tracking-wide transition-transform active:scale-95"
+                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-[12px] tracking-wide transition-transform active:scale-95 whitespace-nowrap"
                 style={{
                   background:
                     "linear-gradient(180deg, #D8B25C 0%, #B68C2F 100%)",

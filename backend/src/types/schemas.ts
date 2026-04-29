@@ -22,6 +22,15 @@ export const createProductSchema = z.object({
 export const createOrderSchema = z.object({
   orderType: z.enum(["PICKUP", "DELIVERY"]),
   tipAmount: z.number().min(0).max(1000).optional(),
+  couponCode: z.string().min(1).max(60).optional(),
+  deliveryAddress: z
+    .object({
+      street: z.string().min(2).max(120),
+      postalCode: z.string().min(4).max(10),
+      city: z.string().min(2).max(80),
+      country: z.string().min(2).max(60).optional(),
+    })
+    .optional(),
   items: z
     .array(
       z.object({

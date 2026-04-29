@@ -1,17 +1,29 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, Minus, Plus, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Minus, Plus, X, Tag } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
-import { useCreateOrder } from "@/hooks/queries";
+import { useCoupons, useCreateOrder } from "@/hooks/queries";
 import { formatPrice, cn } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
+import type { Coupon } from "@/types";
 
 const TIP_PRESETS = [0, 10, 15, 20] as const;
+const DELIVERY_FEE = 3.5;
+const FREE_DELIVERY_THRESHOLD = 25.0;
+
+function computeDiscount(c: Coupon, subtotal: number): number {
+  if (c.minOrderValue && subtotal < c.minOrderValue) return 0;
+  if (c.discountType === "PERCENT") {
+    return +(subtotal * (c.discountValue / 100)).toFixed(2);
+  }
+  return Math.min(c.discountValue, subtotal);
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -20,19 +32,48 @@ export default function CheckoutPage() {
   const removeItem = useCartStore((s) => s.removeItem);
   const subtotal = useCartStore((s) => s.totalPrice());
   const clear = useCartStore((s) => s.clear);
+  const appliedCouponCode = useCartStore((s) => s.appliedCouponCode);
+  const setCoupon = useCartStore((s) => s.setCoupon);
+  const savedAddress = useCartStore((s) => s.deliveryAddress);
+  const setSavedAddress = useCartStore((s) => s.setDeliveryAddress);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const showToast = useUIStore((s) => s.showToast);
   const createOrder = useCreateOrder();
+  const { data: coupons } = useCoupons();
   const [orderType, setOrderType] = useState<"PICKUP" | "DELIVERY">("PICKUP");
   const [success, setSuccess] = useState(false);
   const [tipPercent, setTipPercent] = useState<number | "custom">(0);
   const [customTip, setCustomTip] = useState<string>("");
 
+  const [street, setStreet] = useState(savedAddress?.street ?? "");
+  const [postalCode, setPostalCode] = useState(savedAddress?.postalCode ?? "");
+  const [city, setCity] = useState(savedAddress?.city ?? "Kassel");
+
   const tipAmount =
     tipPercent === "custom"
       ? Math.max(0, Math.min(parseFloat(customTip.replace(",", ".")) || 0, 1000))
       : (subtotal * tipPercent) / 100;
-  const grandTotal = subtotal + tipAmount;
+
+  const appliedCoupon = useMemo(
+    () =>
+      appliedCouponCode
+        ? (coupons?.find((c) => c.code === appliedCouponCode) ?? null)
+        : null,
+    [coupons, appliedCouponCode]
+  );
+  const discount = appliedCoupon ? computeDiscount(appliedCoupon, subtotal) : 0;
+  const subtotalAfterDiscount = Math.max(0, subtotal - discount);
+  const deliveryFee =
+    orderType === "DELIVERY" && subtotalAfterDiscount < FREE_DELIVERY_THRESHOLD
+      ? DELIVERY_FEE
+      : 0;
+  const grandTotal = subtotalAfterDiscount + tipAmount + deliveryFee;
+
+  const plzValid = /^34\d{3}$/.test(postalCode.trim());
+  const addressComplete =
+    street.trim().length >= 3 &&
+    plzValid &&
+    city.trim().length >= 2;
 
   const submit = async () => {
     if (!isAuthenticated) {
@@ -41,24 +82,50 @@ export default function CheckoutPage() {
       return;
     }
     if (items.length === 0) return;
+    if (orderType === "DELIVERY" && !addressComplete) {
+      showToast("Bitte vollständige Lieferadresse angeben (PLZ 34xxx)", "info");
+      return;
+    }
     try {
       await createOrder.mutateAsync({
         orderType,
         tipAmount: Number(tipAmount.toFixed(2)),
+        couponCode: appliedCouponCode ?? undefined,
+        deliveryAddress:
+          orderType === "DELIVERY"
+            ? {
+                street: street.trim(),
+                postalCode: postalCode.trim(),
+                city: city.trim(),
+                country: "Deutschland",
+              }
+            : undefined,
         items: items.map((i) => ({
           productId: i.product.id,
           quantity: i.quantity,
           notes: i.notes,
         })),
       });
+      if (orderType === "DELIVERY") {
+        setSavedAddress({
+          street: street.trim(),
+          postalCode: postalCode.trim(),
+          city: city.trim(),
+          country: "Deutschland",
+        });
+      }
       setSuccess(true);
       showToast("Vielen Dank für Ihre Bestellung", "success");
       setTimeout(() => {
         clear();
         router.push("/profil/bestellungen");
       }, 1800);
-    } catch {
-      showToast("Bestellung fehlgeschlagen", "error");
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } };
+      showToast(
+        err?.response?.data?.error ?? "Bestellung fehlgeschlagen",
+        "error"
+      );
     }
   };
 
@@ -180,8 +247,93 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* Lieferadresse */}
+          {orderType === "DELIVERY" && (
+            <div className="px-7 mt-8">
+              <p className="luxe-label">Lieferadresse</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-text-faint mt-1">
+                Lieferung im Raum Kassel · PLZ 34xxx
+              </p>
+              <div className="mt-4 space-y-3">
+                <input
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  placeholder="Straße & Hausnummer"
+                  className="luxe-input"
+                  maxLength={120}
+                  autoComplete="street-address"
+                />
+                <div className="flex gap-3">
+                  <input
+                    value={postalCode}
+                    onChange={(e) =>
+                      setPostalCode(e.target.value.replace(/\D/g, "").slice(0, 5))
+                    }
+                    placeholder="PLZ"
+                    inputMode="numeric"
+                    className={cn(
+                      "luxe-input w-28",
+                      postalCode.length === 5 && !plzValid && "border-bordeaux"
+                    )}
+                    autoComplete="postal-code"
+                  />
+                  <input
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="Ort"
+                    className="luxe-input flex-1"
+                    maxLength={80}
+                    autoComplete="address-level2"
+                  />
+                </div>
+                {postalCode.length === 5 && !plzValid && (
+                  <p className="text-xs text-bordeaux">
+                    Lieferung aktuell nur in den Raum Kassel (PLZ beginnend mit 34).
+                  </p>
+                )}
+                <p className="text-[10px] uppercase tracking-[0.22em] text-text-faint">
+                  Liefergebühr: {DELIVERY_FEE.toFixed(2)} € · ab{" "}
+                  {FREE_DELIVERY_THRESHOLD.toFixed(2)} € versandkostenfrei
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Coupon-Status */}
+          <div className="px-7 mt-8">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-gold" strokeWidth={1.6} />
+              <p className="luxe-label">Gutschein</p>
+            </div>
+            {appliedCoupon ? (
+              <div className="mt-3 flex items-center justify-between gap-3 px-4 py-3 rounded-md border border-gold bg-gold/10">
+                <div className="min-w-0">
+                  <p className="font-serif text-sm text-text-cream truncate">
+                    {appliedCoupon.title}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-gold mt-0.5">
+                    {appliedCoupon.code} · {appliedCoupon.discountText}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCoupon(null)}
+                  className="text-[11px] uppercase tracking-[0.18em] text-bordeaux hover:underline"
+                >
+                  Entfernen
+                </button>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-text-muted">
+                Keiner angewendet.{" "}
+                <Link href="/cart" className="text-bordeaux underline">
+                  Im Warenkorb auswählen
+                </Link>
+              </p>
+            )}
+          </div>
+
           {/* Trinkgeld */}
-          <div className="px-7 mt-10">
+          <div className="px-7 mt-8">
             <p className="luxe-label">Trinkgeld</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {TIP_PRESETS.map((p) => (
@@ -243,6 +395,22 @@ export default function CheckoutPage() {
                   {formatPrice(subtotal)}
                 </span>
               </div>
+              {discount > 0 && (
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-gold">Rabatt</span>
+                  <span className="font-sans text-gold tabular-nums">
+                    −{formatPrice(discount)}
+                  </span>
+                </div>
+              )}
+              {orderType === "DELIVERY" && (
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-text-muted">Liefergebühr</span>
+                  <span className="font-sans text-text-cream tabular-nums">
+                    {deliveryFee === 0 ? "Gratis" : formatPrice(deliveryFee)}
+                  </span>
+                </div>
+              )}
               <div className="flex items-baseline justify-between text-sm">
                 <span className="text-text-muted">Trinkgeld</span>
                 <span className="font-sans text-text-cream tabular-nums">
@@ -259,7 +427,11 @@ export default function CheckoutPage() {
 
             <button
               onClick={submit}
-              disabled={createOrder.isPending || success}
+              disabled={
+                createOrder.isPending ||
+                success ||
+                (orderType === "DELIVERY" && !addressComplete)
+              }
               className="bordeaux-btn mt-10 w-full disabled:opacity-50"
             >
               {success

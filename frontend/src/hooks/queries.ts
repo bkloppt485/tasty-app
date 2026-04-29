@@ -108,12 +108,22 @@ export function useCreateOrder() {
     mutationFn: async (data: {
       orderType: "PICKUP" | "DELIVERY";
       tipAmount?: number;
+      couponCode?: string;
+      deliveryAddress?: {
+        street: string;
+        postalCode: string;
+        city: string;
+        country?: string;
+      };
       items: { productId: string; quantity: number; notes?: string }[];
     }) => {
       const res = await api.post<Order>("/orders", data);
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["coupons"] });
+    },
   });
 }
 
