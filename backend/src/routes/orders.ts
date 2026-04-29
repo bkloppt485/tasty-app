@@ -78,4 +78,21 @@ router.post(
   }
 );
 
+// Get single order (own order only, used for live status polling)
+router.get("/:id", authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: { items: { include: { product: true } } },
+    });
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    if (order.userId !== req.userId && req.userRole !== "ADMIN") {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch order" });
+  }
+});
+
 export default router;

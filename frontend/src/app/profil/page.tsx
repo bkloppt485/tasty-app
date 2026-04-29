@@ -13,6 +13,7 @@ import {
   ScrollText,
   Shield,
   ChevronRight,
+  LayoutDashboard,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { useAuthStore } from "@/store/auth";
@@ -89,6 +90,27 @@ export default function ProfilPage() {
           <ChevronRight className="h-4 w-4 opacity-70" strokeWidth={1.8} />
         </Link>
       </div>
+
+      {/* Admin entry — only for admins */}
+      {isAuthenticated && user?.role === "ADMIN" && (
+        <div className="px-7 mt-6">
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-4 py-3 rounded-sm shadow-soft press transition-colors"
+            style={{
+              background: "rgba(122,30,42,0.08)",
+              border: "1px solid rgba(122,30,42,0.3)",
+              color: "#7A1E2A",
+            }}
+          >
+            <LayoutDashboard className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+            <span className="flex-1 text-[11px] uppercase tracking-[0.22em] font-semibold">
+              Admin Cockpit
+            </span>
+            <ChevronRight className="h-4 w-4 opacity-70" strokeWidth={1.8} />
+          </Link>
+        </div>
+      )}
 
       {/* Menu list */}
       <nav className="mt-4 px-7">

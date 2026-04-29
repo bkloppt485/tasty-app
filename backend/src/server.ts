@@ -9,6 +9,7 @@ import productRoutes from "@/routes/products";
 import couponRoutes from "@/routes/coupons";
 import orderRoutes from "@/routes/orders";
 import reservationRoutes from "@/routes/reservations";
+import adminRoutes from "@/routes/admin";
 
 const app = express();
 
@@ -92,6 +93,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reservations", reservationRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handling
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

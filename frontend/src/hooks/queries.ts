@@ -45,6 +45,19 @@ export function useOrders() {
     queryKey: ["orders"],
     queryFn: async () => (await api.get<Order[]>("/orders")).data,
     enabled: isAuthenticated,
+    // Live status: poll every 10s if there is at least one active order
+    refetchInterval: (q) => {
+      const orders = q.state.data as Order[] | undefined;
+      if (!orders) return false;
+      const hasActive = orders.some(
+        (o) =>
+          o.status === "CONFIRMED" ||
+          o.status === "PREPARING" ||
+          o.status === "PENDING",
+      );
+      return hasActive ? 10_000 : false;
+    },
+    refetchOnWindowFocus: true,
   });
 }
 
