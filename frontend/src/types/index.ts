@@ -94,3 +94,26 @@ export interface Address {
   country: string;
   isDefault: boolean;
 }
+
+export interface RestaurantSettings {
+  id: string;
+  name: string;
+  tagline?: string | null;
+  description?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  openingHours?: string | null;
+  social?: string | null;
+  primaryColor?: string | null;
+  logoUrl?: string | null;
+  heroImageUrl?: string | null;
+  deliveryEnabled: boolean;
+  pickupEnabled: boolean;
+  deliveryFee: number;
+  freeDeliveryThreshold: number;
+  allowedPostalPrefixes: string;
+  updatedAt: string;
+}

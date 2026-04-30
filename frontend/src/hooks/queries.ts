@@ -61,6 +61,24 @@ export function useOrders() {
   });
 }
 
+export function useOrder(id: string | null | undefined) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  return useQuery<Order>({
+    queryKey: ["orders", id],
+    queryFn: async () => (await api.get<Order>(`/orders/${id}`)).data,
+    enabled: !!id && isAuthenticated,
+    refetchInterval: (q) => {
+      const order = q.state.data as Order | undefined;
+      if (!order) return 5_000;
+      const active =
+        order.status === "PENDING" ||
+        order.status === "CONFIRMED" ||
+        order.status === "PREPARING";
+      return active ? 10_000 : false;
+    },
+  });
+}
+
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({

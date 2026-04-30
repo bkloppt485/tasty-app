@@ -87,7 +87,7 @@ export default function CheckoutPage() {
       return;
     }
     try {
-      await createOrder.mutateAsync({
+      const order = await createOrder.mutateAsync({
         orderType,
         tipAmount: Number(tipAmount.toFixed(2)),
         couponCode: appliedCouponCode ?? undefined,
@@ -118,8 +118,8 @@ export default function CheckoutPage() {
       showToast("Vielen Dank für Ihre Bestellung", "success");
       setTimeout(() => {
         clear();
-        router.push("/profil/bestellungen");
-      }, 1800);
+        router.push(`/danke/${order.id}`);
+      }, 1200);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } } };
       showToast(

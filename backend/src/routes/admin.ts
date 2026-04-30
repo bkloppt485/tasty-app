@@ -8,6 +8,13 @@ import {
   sendReservationStatusUpdate,
 } from "@/lib/mailer";
 import { sendOrderStatusPush } from "@/lib/push";
+import {
+  createProductSchema,
+  updateProductSchema,
+  createCouponSchema,
+  updateCouponSchema,
+  restaurantSettingsSchema,
+} from "@/types/schemas";
 
 const router = Router();
 
@@ -244,5 +251,216 @@ router.post("/demo-reset", async (_req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Demo reset failed" });
   }
 });
+
+// ─── PRODUCTS CRUD ──────────────────────────────────────────────
+router.get("/products", async (_req: AuthRequest, res: Response) => {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+    });
+    res.json(products);
+  } catch (e) {
+    console.error("[admin] list products failed", e);
+    res.status(500).json({ error: "Failed to list products" });
+  }
+});
+
+const productBodySchema = z.object({ body: createProductSchema });
+const productUpdateBodySchema = z.object({ body: updateProductSchema });
+
+router.post(
+  "/products",
+  validateRequest(productBodySchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const data = req.body as z.infer<typeof createProductSchema>;
+      const product = await prisma.product.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          category: data.category,
+          image: data.image || null,
+          allergens: data.allergens || null,
+          ingredients: data.ingredients || null,
+          active: data.active ?? true,
+        },
+      });
+      res.status(201).json(product);
+    } catch (e) {
+      console.error("[admin] create product failed", e);
+      res.status(500).json({ error: "Failed to create product" });
+    }
+  }
+);
+
+router.patch(
+  "/products/:id",
+  validateRequest(productUpdateBodySchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const data = req.body as z.infer<typeof updateProductSchema>;
+      const product = await prisma.product.update({
+        where: { id },
+        data: {
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.price !== undefined && { price: data.price }),
+          ...(data.category !== undefined && { category: data.category }),
+          ...(data.image !== undefined && { image: data.image || null }),
+          ...(data.allergens !== undefined && { allergens: data.allergens || null }),
+          ...(data.ingredients !== undefined && { ingredients: data.ingredients || null }),
+          ...(data.active !== undefined && { active: data.active }),
+        },
+      });
+      res.json(product);
+    } catch (e) {
+      console.error("[admin] update product failed", e);
+      res.status(500).json({ error: "Failed to update product" });
+    }
+  }
+);
+
+router.delete("/products/:id", async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    // Check if product is referenced — soft-delete (set active=false) if so
+    const itemCount = await prisma.orderItem.count({ where: { productId: id } });
+    if (itemCount > 0) {
+      const product = await prisma.product.update({
+        where: { id },
+        data: { active: false },
+      });
+      return res.json({ ok: true, softDeleted: true, product });
+    }
+    await prisma.product.delete({ where: { id } });
+    res.json({ ok: true, deleted: true });
+  } catch (e) {
+    console.error("[admin] delete product failed", e);
+    res.status(500).json({ error: "Failed to delete product" });
+  }
+});
+
+// ─── COUPONS CRUD ──────────────────────────────────────────────
+router.get("/coupons", async (_req: AuthRequest, res: Response) => {
+  try {
+    const coupons = await prisma.coupon.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(coupons);
+  } catch (e) {
+    console.error("[admin] list coupons failed", e);
+    res.status(500).json({ error: "Failed to list coupons" });
+  }
+});
+
+const couponBodySchema = z.object({ body: createCouponSchema });
+const couponUpdateBodySchema = z.object({ body: updateCouponSchema });
+
+router.post(
+  "/coupons",
+  validateRequest(couponBodySchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const data = req.body as z.infer<typeof createCouponSchema>;
+      const coupon = await prisma.coupon.create({
+        data: {
+          code: data.code.toUpperCase(),
+          title: data.title,
+          subtitle: data.subtitle,
+          imageUrl: data.imageUrl || null,
+          discountText: data.discountText,
+          discountType: data.discountType,
+          discountValue: data.discountValue,
+          minOrderValue: data.minOrderValue ?? null,
+          validUntil: new Date(data.validUntil),
+          usageLimit: data.usageLimit ?? null,
+          isPersonalized: data.isPersonalized ?? true,
+        },
+      });
+      res.status(201).json(coupon);
+    } catch (e: unknown) {
+      console.error("[admin] create coupon failed", e);
+      const err = e as { code?: string };
+      if (err?.code === "P2002") {
+        return res.status(400).json({ error: "Coupon-Code existiert bereits" });
+      }
+      res.status(500).json({ error: "Failed to create coupon" });
+    }
+  }
+);
+
+router.patch(
+  "/coupons/:id",
+  validateRequest(couponUpdateBodySchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const data = req.body as z.infer<typeof updateCouponSchema>;
+      const coupon = await prisma.coupon.update({
+        where: { id },
+        data: {
+          ...(data.code !== undefined && { code: data.code.toUpperCase() }),
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.subtitle !== undefined && { subtitle: data.subtitle }),
+          ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl || null }),
+          ...(data.discountText !== undefined && { discountText: data.discountText }),
+          ...(data.discountType !== undefined && { discountType: data.discountType }),
+          ...(data.discountValue !== undefined && { discountValue: data.discountValue }),
+          ...(data.minOrderValue !== undefined && { minOrderValue: data.minOrderValue ?? null }),
+          ...(data.validUntil !== undefined && { validUntil: new Date(data.validUntil) }),
+          ...(data.usageLimit !== undefined && { usageLimit: data.usageLimit ?? null }),
+          ...(data.isPersonalized !== undefined && { isPersonalized: data.isPersonalized }),
+        },
+      });
+      res.json(coupon);
+    } catch (e) {
+      console.error("[admin] update coupon failed", e);
+      res.status(500).json({ error: "Failed to update coupon" });
+    }
+  }
+);
+
+router.delete("/coupons/:id", async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.couponRedemption.deleteMany({ where: { couponId: id } });
+    await prisma.coupon.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("[admin] delete coupon failed", e);
+    res.status(500).json({ error: "Failed to delete coupon" });
+  }
+});
+
+// ─── RESTAURANT SETTINGS ──────────────────────────────────────────────
+const settingsBodySchema = z.object({ body: restaurantSettingsSchema });
+
+router.put(
+  "/restaurant",
+  validateRequest(settingsBodySchema),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const data = req.body as z.infer<typeof restaurantSettingsSchema>;
+      const cleaned = Object.fromEntries(
+        Object.entries(data).map(([k, v]) =>
+          v === "" && (k === "logoUrl" || k === "heroImageUrl" || k === "email")
+            ? [k, null]
+            : [k, v]
+        )
+      );
+      const settings = await prisma.restaurantSettings.upsert({
+        where: { id: "default" },
+        update: cleaned,
+        create: { id: "default", ...cleaned },
+      });
+      res.json(settings);
+    } catch (e) {
+      console.error("[admin] update restaurant failed", e);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  }
+);
 
 export default router;

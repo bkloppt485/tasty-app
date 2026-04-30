@@ -1,3 +1,29 @@
+// Restaurant settings (single-tenant: id = "default")
+model RestaurantSettings {
+  id              String   @id @default("default")
+  name            String   @default("Tasty")
+  tagline         String?
+  description     String?
+  phone           String?
+  email           String?
+  street          String?
+  postalCode      String?
+  city            String?
+  // JSON: { mon: "11:00-22:00", tue: "...", ... }
+  openingHours    String?
+  // JSON: { instagram, facebook, ... }
+  social          String?
+  primaryColor    String?
+  logoUrl         String?
+  heroImageUrl    String?
+  deliveryEnabled Boolean  @default(true)
+  pickupEnabled   Boolean  @default(true)
+  deliveryFee     Float    @default(3.5)
+  freeDeliveryThreshold Float @default(25.0)
+  allowedPostalPrefixes String  @default("34")
+  updatedAt       DateTime @updatedAt
+}
+
 // Prisma schema for Gastronomie Web-App
 // SQLite for local dev (switch to postgresql for production)
 

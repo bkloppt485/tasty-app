@@ -11,6 +11,8 @@ import orderRoutes from "@/routes/orders";
 import reservationRoutes from "@/routes/reservations";
 import adminRoutes from "@/routes/admin";
 import pushRoutes from "@/routes/push";
+import restaurantRoutes from "@/routes/restaurant";
+import { prisma } from "@/database/prisma";
 
 const app = express();
 
@@ -96,6 +98,41 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/push", pushRoutes);
+app.use("/api/restaurant", restaurantRoutes);
+
+// One-shot schema migrations (idempotent). Runs on startup to make sure
+// new tables exist even if `prisma db push` could not reach the DB locally.
+async function ensureSchema() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "RestaurantSettings" (
+        "id" TEXT PRIMARY KEY DEFAULT 'default',
+        "name" TEXT NOT NULL DEFAULT 'Tasty',
+        "tagline" TEXT,
+        "description" TEXT,
+        "phone" TEXT,
+        "email" TEXT,
+        "street" TEXT,
+        "postalCode" TEXT,
+        "city" TEXT,
+        "openingHours" TEXT,
+        "social" TEXT,
+        "primaryColor" TEXT,
+        "logoUrl" TEXT,
+        "heroImageUrl" TEXT,
+        "deliveryEnabled" BOOLEAN NOT NULL DEFAULT true,
+        "pickupEnabled" BOOLEAN NOT NULL DEFAULT true,
+        "deliveryFee" DOUBLE PRECISION NOT NULL DEFAULT 3.5,
+        "freeDeliveryThreshold" DOUBLE PRECISION NOT NULL DEFAULT 25.0,
+        "allowedPostalPrefixes" TEXT NOT NULL DEFAULT '34',
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log("[migrate] RestaurantSettings table ensured");
+  } catch (e) {
+    console.error("[migrate] failed to ensure schema", e);
+  }
+}
 
 // Error handling
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -112,6 +149,7 @@ app.listen(PORT, () => {
   );
   console.log(`📊 API: http://localhost:${PORT}/api`);
   console.log(`🌐 CORS allowed: ${allowedOrigins.join(", ")}`);
+  ensureSchema();
 });
 
 export default app;

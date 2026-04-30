@@ -29,7 +29,12 @@ import {
   ArrowRight,
   RefreshCw,
   RotateCcw,
+  UtensilsCrossed,
+  Tag,
+  Building2,
+  ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
 
 type Tab = "orders" | "reservations" | "stats";
 
@@ -153,7 +158,64 @@ function StatsPanel() {
         />
       </div>
       <DemoResetCard />
+
+      <div className="bg-bg-elevated border border-border-subtle rounded-md overflow-hidden">
+        <div className="px-4 py-3 border-b border-border-subtle">
+          <p className="luxe-label">Verwalten</p>
+        </div>
+        <ManageLink
+          href="/admin/produkte"
+          icon={<UtensilsCrossed className="h-4 w-4" />}
+          title="Speisekarte"
+          subtitle="Produkte hinzufügen, bearbeiten, deaktivieren"
+        />
+        <ManageLink
+          href="/admin/angebote"
+          icon={<Tag className="h-4 w-4" />}
+          title="Angebote"
+          subtitle="Coupons & Aktionen verwalten"
+        />
+        <ManageLink
+          href="/admin/restaurant"
+          icon={<Building2 className="h-4 w-4" />}
+          title="Restaurant-Daten"
+          subtitle="Name, Adresse, Öffnungszeiten, Lieferung"
+          last
+        />
+      </div>
     </div>
+  );
+}
+
+function ManageLink({
+  href,
+  icon,
+  title,
+  subtitle,
+  last,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  last?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-bg-deep transition-colors ${
+        last ? "" : "border-b border-border-subtle"
+      }`}
+    >
+      <span className="h-8 w-8 rounded-full bg-bordeaux/10 text-bordeaux flex items-center justify-center shrink-0">
+        {icon}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-text-cream font-medium">{title}</p>
+        <p className="text-[11px] text-text-muted truncate">{subtitle}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-text-faint shrink-0" />
+    </Link>
   );
 }
 
